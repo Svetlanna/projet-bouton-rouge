@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  # ================= 1. CI : TESTS (ta partie actuelle, inchangée) =================
+  #  CI : TESTS (ta partie actuelle, inchangée) =================
   backend:
     name: Backend (Express)
     runs-on: ubuntu-latest
@@ -37,7 +37,7 @@ jobs:
       - name: Test smoke sur le vrai serveur
         run: npm run test:smoke          # lance scripts/server_test.js
 
-  # ================= 2. CD : IMAGES =================
+  # CD : IMAGES =================
   images:
     name: Construire et publier les images
     runs-on: ubuntu-latest
@@ -75,7 +75,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:${{ github.sha }}
           # github.sha = numéro unique du commit -> permet de revenir à une ancienne version
 
-  # ================= 3. CD : DÉPLOIEMENT SUR LA VM =================
+  #  CD : DÉPLOIEMENT SUR LA VM =================
   deploy:
     name: Déployer sur la VM
     runs-on: ubuntu-latest
