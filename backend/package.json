@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "test": "jest"
+    "test": "jest",
+    "test:smoke": "node scripts/server_test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
