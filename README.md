@@ -18,8 +18,7 @@ Identifiants de démonstration `admin` / `docker`
 6. [Le déploiement sur la VM](#6-le-déploiement-sur-la-vm)
 7. [Les secrets GitHub](#7-les-secrets-github)
 8. [Les ports](#8-les-ports)
-9. [Problèmes fréquents et solutions](#9-problèmes-fréquents-et-solutions)
-10. [Petit lexique](#10-petit-lexique)
+
 
 ---
 
