@@ -6,7 +6,8 @@ COPY package*.json ./
 
 RUN npm install --omit=dev
 
-COPY server.js ./
+# On copie les 3 fichiers de l'application (les tests ne sont pas copiés)
+COPY server.js app.js logic.js ./
 
 EXPOSE 3000
 
