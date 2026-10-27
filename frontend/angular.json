@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "le-bouton-rouge-frontend": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {"builder": "@angular/build:application", "options": {"outputPath": "dist/le-bouton-rouge-frontend", "index": "src/index.html", "browser": "src/main.ts", "tsConfig": "tsconfig.app.json", "styles": ["src/styles.scss"]}},
+        "serve": {"builder": "@angular/build:dev-server", "options": {"buildTarget": "le-bouton-rouge-frontend:build", "proxyConfig": "proxy.conf.json"}}
+      }
+    }
+  },
+  "cli": {
+    "analytics": false
+  }
+}

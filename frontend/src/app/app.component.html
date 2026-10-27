@@ -1,0 +1,36 @@
+<main class="page">
+  <div class="glow glow-one"></div><div class="glow glow-two"></div>
+  <header class="topbar"><span class="logo-mark">●</span> PROJET <strong>BOUTON ROUGE</strong><span class="top-status"><span class="dot"></span> SYSTÈME OPÉRATIONNEL</span></header>
+  @if (!loggedIn()) {
+    <section class="panel login-panel">
+      <div class="eyebrow">ACCÈS RESTREINT // 001</div>
+      <div class="lock">⌁</div>
+      <h1>Zone interdite<span class="accent">.</span></h1>
+      <p>Identifie-toi pour accéder à une expérience que personne n'a demandée.</p>
+      <form (ngSubmit)="login()">
+        <label for="username">IDENTIFIANT</label>
+        <input id="username" name="username" [(ngModel)]="username" autocomplete="username" placeholder="Identifiant" required>
+        <label for="password">MOT DE PASSE</label>
+        <input id="password" name="password" [(ngModel)]="password" type="password" autocomplete="current-password" placeholder="Mot de passe" required>
+        <button class="login-button" type="submit" [disabled]="loading()">{{ loading() ? 'CONNEXION…' : 'ENTRER →' }}</button>
+      </form>
+      @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+      <div class="footnote">ATTENTION : CETTE APPLICATION NE SERT STRICTEMENT À RIEN.</div>
+    </section>
+  } @else {
+    <section class="game">
+      <div class="eyebrow">PROTOCOLE EXPÉRIMENTAL // 002</div>
+      <h1>{{ finished() ? 'C’est trop tard.' : 'Ne touche pas.' }}</h1>
+      <p class="subtitle">{{ finished() ? 'On t’avait prévenu.' : 'Vraiment. Il y a d’autres choses à faire.' }}</p>
+      <div class="button-area" [class.finished]="finished()">
+        <div class="ring ring-one"></div><div class="ring ring-two"></div>
+        <button class="red-button" (click)="clickButton()" [disabled]="loading() || finished()" aria-label="Ne pas appuyer sur le bouton rouge"><span>{{ finished() ? '💥' : 'NE PAS' }}<br>{{ finished() ? '' : 'APPUYER' }}</span></button>
+      </div>
+      <div class="message-panel" aria-live="polite"><span class="message-label">MESSAGE DU SYSTÈME</span><p>{{ message() }}</p></div>
+      <div class="progress"><div class="progress-info"><span>INDICE DE CATASTROPHE</span><strong>{{ count() }} / 30</strong></div><div class="track"><div class="fill" [style.width.%]="count() / 30 * 100"></div></div></div>
+      @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+      @if (finished()) { <button class="reset-button" (click)="restart()">↻ RECOMMENCER</button> }
+    </section>
+  }
+  <footer>UNE EXPÉRIENCE INUTILE · PROPULSÉE PAR ANGULAR + EXPRESS</footer>
+</main>
