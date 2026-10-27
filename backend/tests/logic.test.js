@@ -1,5 +1,4 @@
-const { messages, MAX_CLICKS, checkLogin, isValidCount, getClickResponse } = require("../backend/logic");
-
+const { messages, MAX_CLICKS, checkLogin, isValidCount, getClickResponse } = require("../logic");
 
 describe("checkLogin", () => {
 

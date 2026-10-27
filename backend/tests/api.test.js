@@ -1,5 +1,5 @@
 const request = require("supertest");
-const app = require("../backend/app");
+const app = require("../app");
 
 describe("POST /login", () => {
 
