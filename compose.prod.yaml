@@ -1,0 +1,13 @@
+
+services:
+  backend:                     # le nom DOIT rester "backend" (nginx.conf l'utilise)
+    image: svetlanna9/bouton-rouge-backend:latest
+    restart: unless-stopped
+
+  frontend:
+    image: svetlanna9/bouton-rouge-frontend:latest
+    ports:
+      - "80:80"                # port 80 de la VM -> Nginx
+    depends_on:
+      - backend
+    restart: unless-stopped

@@ -1,4 +1,4 @@
-name: CI
+name: CI-CD
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  #backend ----------
+  # ================= 1. CI : TESTS (ta partie actuelle, inchangée) =================
   backend:
     name: Backend (Express)
     runs-on: ubuntu-latest
@@ -27,28 +27,92 @@ jobs:
 
       - name: Installer les dépendances
         run: npm ci
-      - name: Lancer les tests unitaires
-        run: npm test
+
+      - name: Tests unitaires et d'intégration (Jest)
+        run: npm test                    # lance tests/logic.test.js et tests/api.test.js
+
       - name: Démarrer le serveur en arrière-plan
-        run: |
-          node server.js &
-          for i in $(seq 1 20); do         
-            curl -s -o /dev/null http://localhost:3000 && exit 0
-            sleep 1
-          done
-          echo "Le serveur n'a pas démarré" && exit 1
+        run: node server.js &            # le & laisse le serveur tourner pour l'étape suivante
 
-      - name: Tester /login avec les bons identifiants
-        run: |
-          curl -sf -X POST http://localhost:3000/login \
-            -H "Content-Type: application/json" \
-            -d '{"username":"admin","password":"docker"}' | grep '"success":true'
-          # grep échoue (et donc l'étape aussi) si la réponse ne contient pas "success":true
+      - name: Test smoke sur le vrai serveur
+        run: npm run test:smoke          # lance scripts/server_test.js
 
-      - name: Tester /login avec de mauvais identifiants (401 attendu)
-        run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/login \
-            -H "Content-Type: application/json" \
-            -d '{"username":"x","password":"y"}')
-          echo "Code reçu : $code"
-          test "$code" = "401"
+  # ================= 2. CD : IMAGES =================
+  images:
+    name: Construire et publier les images
+    runs-on: ubuntu-latest
+    needs: backend                       # seulement si les tests ont réussi
+    if: github.event_name == 'push'      # seulement pour un vrai push sur main (pas une pull request)
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Préparer Docker Buildx
+        uses: docker/setup-buildx-action@v3   # outil de construction d'images
+
+      - name: Se connecter à Docker Hub
+        uses: docker/login-action@v3          # comme "docker login" sur ton PC
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Construire et envoyer l'image backend
+        uses: docker/build-push-action@v6     # comme "docker build" + "docker tag" + "docker push"
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-backend:${{ github.sha }}
+
+      - name: Construire et envoyer l'image frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:${{ github.sha }}
+          # github.sha = numéro unique du commit -> permet de revenir à une ancienne version
+
+  # ================= 3. CD : DÉPLOIEMENT SUR LA VM =================
+  deploy:
+    name: Déployer sur la VM
+    runs-on: ubuntu-latest
+    needs: images                        # seulement si les images sont publiées
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Copier compose.prod.yaml sur la VM
+        uses: appleboy/scp-action@v0.1.7 # comme ta commande "scp"
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          password: ${{ secrets.VM_PASSWORD }}
+          source: compose.prod.yaml
+          target: ~/bouton-rouge-svetlana
+
+      - name: Lancer la nouvelle version sur la VM
+        uses: appleboy/ssh-action@v1.0.3 # comme "ssh" + tes commandes docker compose
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          password: ${{ secrets.VM_PASSWORD }}
+          script: |
+            cd ~/bouton-rouge-svetlana
+            docker compose -f compose.prod.yaml pull
+            docker compose -f compose.prod.yaml up -d
+            docker image prune -f
+            docker compose -f compose.prod.yaml ps
+
+      - name: Installer Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test smoke sur la VM (en ligne)
+        working-directory: backend
+        env:
+          BASE_URL: http://${{ secrets.VM_HOST }}:8081/api   # ton port 8081, en passant par Nginx
+        run: npm run test:smoke
