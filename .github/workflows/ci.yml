@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  #  CI : TESTS (ta partie actuelle, inchangée) =================
+  # ================= 1. CI : TESTS =================
   backend:
     name: Backend (Express)
     runs-on: ubuntu-latest
@@ -37,27 +37,27 @@ jobs:
       - name: Test smoke sur le vrai serveur
         run: npm run test:smoke          # lance scripts/server_test.js
 
-  # CD : IMAGES =================
+  # ================= 2. CD : IMAGES =================
   images:
     name: Construire et publier les images
     runs-on: ubuntu-latest
     needs: backend                       # seulement si les tests ont réussi
-    if: github.event_name == 'push'      # seulement pour un vrai push sur main (pas une pull request)
+    if: github.event_name == 'push'      # seulement pour un vrai push sur main
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
       - name: Préparer Docker Buildx
-        uses: docker/setup-buildx-action@v3   # outil de construction d'images
+        uses: docker/setup-buildx-action@v3
 
       - name: Se connecter à Docker Hub
-        uses: docker/login-action@v3          # comme "docker login" sur ton PC
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Construire et envoyer l'image backend
-        uses: docker/build-push-action@v6     # comme "docker build" + "docker tag" + "docker push"
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: true
@@ -73,9 +73,8 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:${{ github.sha }}
-          # github.sha = numéro unique du commit -> permet de revenir à une ancienne version
 
-  #  CD : DÉPLOIEMENT SUR LA VM =================
+  # ================= 3. CD : DÉPLOIEMENT SUR LA VM =================
   deploy:
     name: Déployer sur la VM
     runs-on: ubuntu-latest
@@ -85,7 +84,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Copier compose.prod.yaml sur la VM
-        uses: appleboy/scp-action@v0.1.7 # comme ta commande "scp"
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
@@ -94,7 +93,7 @@ jobs:
           target: ~/bouton-rouge-svetlana
 
       - name: Lancer la nouvelle version sur la VM
-        uses: appleboy/ssh-action@v1.0.3 # comme "ssh" + tes commandes docker compose
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
@@ -114,5 +113,5 @@ jobs:
       - name: Test smoke sur la VM (en ligne)
         working-directory: backend
         env:
-          BASE_URL: http://${{ secrets.VM_HOST }}:8081/api   # ton port 8081, en passant par Nginx
+          BASE_URL: http://${{ secrets.VM_HOST }}:4203/api   # ← nouveau port 4203
         run: npm run test:smoke
