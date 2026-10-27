@@ -39,11 +39,7 @@ jobs:
           echo "Le serveur n'a pas démarré" && exit 1
 
       - name: Tester /login avec les bons identifiants
-        run: |
-          curl -sf -X POST http://localhost:3000/login \
-            -H "Content-Type: application/json" \
-            -d '{"username":"admin","password":"docker"}' | grep '"success":true'
-          # grep échoue (et donc l'étape aussi) si la réponse ne contient pas "success":true
+        run: node logique_test.js
 
       - name: Tester /login avec de mauvais identifiants (401 attendu)
         run: |
