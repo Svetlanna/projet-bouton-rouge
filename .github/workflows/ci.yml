@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  # ================= 1. CI : TESTS =================
+  #1. CI : AUDIT + TESTS =================
   backend:
     name: Backend (Express)
     runs-on: ubuntu-latest
@@ -25,24 +25,31 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
+      - name: npm audit du backend
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: npm audit du frontend
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Installer les dépendances
         run: npm ci
 
       - name: Tests unitaires et d'intégration (Jest)
-        run: npm test                    # lance tests/logic.test.js et tests/api.test.js
+        run: npm test
 
       - name: Démarrer le serveur en arrière-plan
-        run: node server.js &            # le & laisse le serveur tourner pour l'étape suivante
+        run: node server.js &
 
       - name: Test smoke sur le vrai serveur
-        run: npm run test:smoke          # lance scripts/server_test.js
+        run: npm run test:smoke
 
-  # ================= 2. CD : IMAGES =================
+  # CD IMAGES =================
   images:
     name: Construire et publier les images
     runs-on: ubuntu-latest
-    needs: backend                       # seulement si les tests ont réussi
-    if: github.event_name == 'push'      # seulement pour un vrai push sur main
+    needs: backend
+    if: github.event_name == 'push'
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4
@@ -74,11 +81,11 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:${{ github.sha }}
 
-  # ================= 3. CD : DÉPLOIEMENT SUR LA VM =================
+  #  CD DÉPLOIEMENT SUR LA VM =================
   deploy:
     name: Déployer sur la VM
     runs-on: ubuntu-latest
-    needs: images                        # seulement si les images sont publiées
+    needs: images
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4
@@ -113,5 +120,5 @@ jobs:
       - name: Test smoke sur la VM (en ligne)
         working-directory: backend
         env:
-          BASE_URL: http://${{ secrets.VM_HOST }}:4203/api   # ← nouveau port 4203
+          BASE_URL: http://${{ secrets.VM_HOST }}:4203/api
         run: npm run test:smoke
