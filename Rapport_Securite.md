@@ -43,8 +43,30 @@ Deux étapes ajoutées dans la tâche `backend` du workflow, avant l'installatio
 
 ## 4. Healthcheck — Frontend
 
-- Ajout d'un `HEALTHCHECK` dans le Dockerfile du frontend (étape Nginx) 
-  Docker vérifie toutes les 10 s que Nginx renvoie la page d'accueil (`http://127.0.0.1/`)
-- Le frontend vérifie uniquement Nginx, pas le backend  chaque conteneur contrôle sa propre santé
-- Résultat  `health: starting`, puis `healthy` (`FailingStreak: 0`, `ExitCode: 0`)
-- Les deux conteneurs (backend et frontend) sont maintenant `healthy`
+-   Ajout d'un `HEALTHCHECK` dans le Dockerfile du frontend (étape Nginx) Docker vérifie toutes les 10 s que Nginx renvoie la page d'accueil (`http://127.0.0.1/`)
+-   Le frontend vérifie uniquement Nginx, pas le backend chaque conteneur contrôle sa propre santé
+-   Résultat `health: starting`, puis `healthy` (`FailingStreak: 0`, `ExitCode: 0`)
+-   Les deux conteneurs (backend et frontend) sont maintenant `healthy`
+
+## 5. Scan des images — Trivy
+
+| Image | Système (Alpine) | Bibliothèques de l'app | npm (outil livré avec Node) | Total |
+|---|---|---|---|---|
+| backend | 0 | 0 | 11 HIGH | 11 HIGH, 0 CRITICAL |
+| frontend | 3 HIGH (brotli-libs, curl, libcurl) | — | — | 3 HIGH, 0 CRITICAL |
+
+- Les failles ne viennent pas du code du projet, mais des images de base (`node:22-alpine`, `nginx:alpine`)
+- Elles sont presque toutes corrigeables (`fixed`), une seule n'a pas de correctif (`http-cache-semantics`)
+- npm n'est pas utile pour faire tourner le backend  il augmente la surface d'attaque sans raison
+- Trivy voit ce que npm audit ne voit pas le système et les outils présents dans l'image
+
+
+## 6. Test du site en ligne — OWASP ZAP (baseline, scan passif)
+
+- Cible : le site déployé sur le port 4203 (5 adresses explorées, 100 % de réponses 200).
+- Résultat : **0 High**, **2 Medium**, **6 Low**, 2 Informational.
+- Medium : absence de Content-Security-Policy (risque XSS) et de protection anti-clickjacking.
+- Low : version de Nginx affichée (`Server`), et absence des en-têtes X-Content-Type-Options,
+  Permissions-Policy, Cross-Origin-Opener/Resource/Embedder-Policy.
+- Cause commune : en-têtes de sécurité HTTP non configurés dans Nginx. Aucune faille dans le code.
+- Correction prévue : ajouter les en-têtes dans `frontend/nginx.conf` et masquer la version (`server_tokens off`).
