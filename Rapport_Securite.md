@@ -63,10 +63,21 @@ Deux étapes ajoutées dans la tâche `backend` du workflow, avant l'installatio
 
 ## 6. Test du site en ligne — OWASP ZAP (baseline, scan passif)
 
-- Cible : le site déployé sur le port 4203 (5 adresses explorées, 100 % de réponses 200).
-- Résultat : **0 High**, **2 Medium**, **6 Low**, 2 Informational.
-- Medium : absence de Content-Security-Policy (risque XSS) et de protection anti-clickjacking.
-- Low : version de Nginx affichée (`Server`), et absence des en-têtes X-Content-Type-Options,
-  Permissions-Policy, Cross-Origin-Opener/Resource/Embedder-Policy.
-- Cause commune : en-têtes de sécurité HTTP non configurés dans Nginx. Aucune faille dans le code.
-- Correction prévue : ajouter les en-têtes dans `frontend/nginx.conf` et masquer la version (`server_tokens off`).
+- Cible le site déployé sur le port 4203
+- Résultat **0 High**, **2 Medium**, **6 Low**, 2 Informational
+- Medium absence de Content-Security-Policy (risque XSS) et de protection anti-clickjacking
+- Low version de Nginx affichée (`Server`), et absence des en-têtes X-Content-Type-Options
+  Permissions-Policy, Cross-Origin-Opener/Resource/Embedder-Policy
+- Cause commune  en-têtes de sécurité HTTP non configurés dans Nginx. Aucune faille dans le code
+- Correction prévue  ajouter les en-têtes dans `frontend/nginx.conf` et masquer la version (`server_tokens off`)
+
+
+## 7. ZAP — Correction
+
+- Ajout dans `nginx.conf` de `server_tokens off` et de 7 en-têtes de sécurité 
+  X-Frame-Options, X-Content-Type-Options, Permissions-Policy,
+  Cross-Origin-Opener/Resource/Embedder-Policy, Content-Security-Policy.
+- Angular option `inlineCritical: false` pour supprimer le JavaScript inline (`onload`) bloqué par la CSP
+- Résultat 2 Medium + 6 Low → **1 Medium + 0 Low**
+- Alerte restante acceptée  `style-src 'unsafe-inline'`, nécessaire aux styles de composants Angular
+  Les scripts restent limités au site (`script-src 'self'`), ce qui protège contre le XSS
