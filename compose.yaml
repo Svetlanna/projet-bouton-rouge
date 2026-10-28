@@ -14,8 +14,7 @@ services:
     ports:
       - "8080:80"              # 3. Port du frontend sur l'hôte
     depends_on:
-          backend:
-            condition: service_healthy              # 4. Service à démarrer avant le frontend
+      backend:
+        condition: service_healthy              # 4. Service à démarrer avant le frontend
     restart: unless-stopped
-
 

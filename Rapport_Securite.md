@@ -33,3 +33,18 @@ Deux étapes ajoutées dans la tâche `backend` du workflow, avant l'installatio
 -   Test avec de faux secrets **2 fuites détectées** (`github-pat`, `generic-api-key`), code de sortie `1`
 -   Limite un mot de passe simple n'est pas détecté (pas de forme reconnaissable)
 -   Gitleaks est ajouté à la CI le pipeline s'arrête si un secret est trouvé
+
+## 3. Healthcheck — Backend
+
+-   Ajout d'une route `GET /health` qui renvoie `{"status":"ok"}`, avec son test Jest (25/25 tests réussis)
+-   Ajout d'un `HEALTHCHECK` dans le Dockerfile du backend Docker appelle `/health` toutes les 10 s (tolérance de 10 s au démarrage, 3 échecs avant `unhealthy`)
+-   Résultat statut `health: starting`, puis `healthy`, avec 0 échec (`FailingStreak: 0`) et des vérifications réussies toutes les 10 s (`ExitCode: 0`)
+-   Intérêt distinguer un conteneur simplement démarré (`Up`) d'une application qui répond vraiment
+
+## 4. Healthcheck — Frontend
+
+- Ajout d'un `HEALTHCHECK` dans le Dockerfile du frontend (étape Nginx) 
+  Docker vérifie toutes les 10 s que Nginx renvoie la page d'accueil (`http://127.0.0.1/`)
+- Le frontend vérifie uniquement Nginx, pas le backend  chaque conteneur contrôle sa propre santé
+- Résultat  `health: starting`, puis `healthy` (`FailingStreak: 0`, `ExitCode: 0`)
+- Les deux conteneurs (backend et frontend) sont maintenant `healthy`
