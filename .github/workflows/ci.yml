@@ -120,7 +120,7 @@ jobs:
           script: |
             cd ~/bouton-rouge-svetlana
             docker compose -f compose.prod.yaml pull
-            docker compose -f compose.prod.yaml up -d
+            docker compose -f compose.prod.yaml up -d --wait --wait-timeout 90
             docker image prune -f
             docker compose -f compose.prod.yaml ps
 

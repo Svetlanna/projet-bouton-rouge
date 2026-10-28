@@ -7,6 +7,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
+app.get("/health", (req, res) => {
+	res.json({ status: "ok" });
+});
 app.post("/login", (req, res) => {
 	const { username, password } = req.body || {};
 
