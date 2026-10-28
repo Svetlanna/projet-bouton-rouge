@@ -81,3 +81,35 @@ Deux étapes ajoutées dans la tâche `backend` du workflow, avant l'installatio
 - Résultat 2 Medium + 6 Low → **1 Medium + 0 Low**
 - Alerte restante acceptée  `style-src 'unsafe-inline'`, nécessaire aux styles de composants Angular
   Les scripts restent limités au site (`script-src 'self'`), ce qui protège contre le XSS
+
+
+
+## 8. Runner auto-hébergé — Fonctionnement
+
+### Principe
+- Le runner est un service installé sur la VM (`~/runner-svetlana`), avec les étiquettes
+  `self-hosted`, `Linux`, `X64`, `svetlana`
+- Il contacte GitHub en permanence en HTTPS (« Listening for Jobs ») : c'est la VM qui appelle
+  GitHub, jamais l'inverse. Aucun port à ouvrir, aucun mot de passe de la VM chez GitHub
+
+### Déroulement d'un push
+1. `git push` : GitHub lit `ci.yml` et lance le workflow CI-CD
+2. `secrets` (Gitleaks), `backend` (npm audit + tests) et `images` (Trivy + Docker Hub)
+   tournent sur des machines GitHub (`ubuntu-latest`)
+3. La tâche `deploy` (`runs-on: [self-hosted, svetlana]`) est mise en attente pour le runner
+   qui possède ces étiquettes
+4. Le runner récupère la tâche avec un jeton temporaire, puis l'exécute sur la VM 
+   récupération du code, copie de `compose.prod.yaml`, `docker compose pull`,
+   `up -d --wait` (healthchecks), `image prune`, puis vérification par `curl` de la page et de `/api/health`
+5. Les journaux sont envoyés à GitHub en direct, puis le résultat (`Succeeded` ou `Failed`).
+6. Le runner revient en attente (`Idle`)
+7. `zap` tourne sur une machine GitHub et teste le site depuis Internet
+
+### Résultat
+- Pipeline complet vert, déploiement par le runner en 36 s
+- Le déploiement ne passe plus par SSH secrets `VM_USER` et `VM_PASSWORD` supprimés
+
+### Points de vigilance
+- VM et compte `groupe1` partagés le runner a accès à Docker
+- Dépôt public  approbation obligatoire des pull requests extérieures
+- Entretien du runner à notre charge (mises à jour, disque, service)
