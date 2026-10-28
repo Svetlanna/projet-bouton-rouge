@@ -56,9 +56,10 @@ jobs:
       - name: Test smoke sur le vrai serveur
         run: npm run test:smoke
 
-  # CD IMAGES =================
+
+  # CD IMAGES (avec scan Trivy) =================
   images:
-    name: Construire et publier les images
+    name: Construire, scanner (Trivy) et publier les images
     runs-on: ubuntu-latest
     needs: [secrets, backend]
     if: github.event_name == 'push'
@@ -75,6 +76,21 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # ---------- BACKEND : construire -> scanner -> envoyer ----------
+      - name: Construire l'image backend (sans l'envoyer)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          load: true
+          tags: bouton-rouge-backend:scan
+
+      - name: Trivy sur l'image backend
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.76.1 image --scanners vuln \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+            bouton-rouge-backend:scan
+
       - name: Construire et envoyer l'image backend
         uses: docker/build-push-action@v6
         with:
@@ -84,6 +100,21 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-backend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-backend:${{ github.sha }}
 
+      # ---------- FRONTEND : construire -> scanner -> envoyer ----------
+      - name: Construire l'image frontend (sans l'envoyer)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          load: true
+          tags: bouton-rouge-frontend:scan
+
+      - name: Trivy sur l'image frontend
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.76.1 image --scanners vuln \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+            bouton-rouge-frontend:scan
+
       - name: Construire et envoyer l'image frontend
         uses: docker/build-push-action@v6
         with:
@@ -92,7 +123,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:${{ github.sha }}
-
   #  CD DÉPLOIEMENT SUR LA VM =================
   deploy:
     name: Déployer sur la VM
