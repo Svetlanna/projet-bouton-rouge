@@ -123,50 +123,31 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/bouton-rouge-frontend:${{ github.sha }}
-  #  CD DÉPLOIEMENT SUR LA VM =================
+  #  CD DÉPLOIEMENT SUR LA VM (runner auto-hébergé) =================
   deploy:
-
-    name: Déployer sur la VM
-    runs-on: ubuntu-latest
+    name: Déployer sur la VM (runner auto-hébergé)
+    runs-on: [self-hosted, svetlana]     # tourne SUR la VM, sur le runner étiqueté "svetlana"
     needs: images
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
-      - name: Copier compose.prod.yaml sur la VM
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          password: ${{ secrets.VM_PASSWORD }}
-          source: compose.prod.yaml
-          target: ~/bouton-rouge-svetlana
+      - name: Lancer la nouvelle version
+        run: |
+          mkdir -p ~/bouton-rouge-svetlana
+          cp compose.prod.yaml ~/bouton-rouge-svetlana/
+          cd ~/bouton-rouge-svetlana
+          docker compose -f compose.prod.yaml pull
+          docker compose -f compose.prod.yaml up -d --wait --wait-timeout 90
+          docker image prune -f
+          docker compose -f compose.prod.yaml ps
 
-      - name: Lancer la nouvelle version sur la VM
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          password: ${{ secrets.VM_PASSWORD }}
-          script: |
-            cd ~/bouton-rouge-svetlana
-            docker compose -f compose.prod.yaml pull
-            docker compose -f compose.prod.yaml up -d --wait --wait-timeout 90
-            docker image prune -f
-            docker compose -f compose.prod.yaml ps
-
-      - name: Installer Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Test smoke sur la VM (en ligne)
-        working-directory: backend
-        env:
-          BASE_URL: http://${{ secrets.VM_HOST }}:4203/api
-        run: npm run test:smoke
-
-
+      - name: Vérifier l'application depuis la VM
+        run: |
+          curl -sf http://localhost:4203/ > /dev/null
+          curl -sf http://localhost:4203/api/health
+          echo ""
+          echo "Application OK"
 
   # SÉCURITÉ : SCAN DU SITE EN LIGNE =================
   zap:
