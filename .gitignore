@@ -36,3 +36,6 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+# Rapports et fichiers générés par les outils de sécurité (ZAP, Trivy...)
+zap-rapport*.html
+zap.yaml
